@@ -1,18 +1,22 @@
 format ELF64 executable
 
-segment readable executable
-entry main
-main:
+macro write fd, buf, count
+{
     ; 1 = number of syscall write
     ; rax register syscall, rdi, rsi and rdx register for parameters
     mov rax, 1
     ; standard output 1
-    mov rdi, 1
+    mov rdi, fd
     ; message to write
-    mov rsi, msg
+    mov rsi, buf
     ; size of the buffer 13 character plus new line = 14
-    mov rdx, 14
+    mov rdx, count
     syscall
+}
+segment readable executable
+entry main
+main:
+    write 1, msg, msg_len
 
     ; second syscall to exit
     mov rax, 60
@@ -22,3 +26,4 @@ main:
 
 segment readable writeable
 msg db "Hello, World!", 10
+msg_len = $ - msg
