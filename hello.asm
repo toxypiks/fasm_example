@@ -13,16 +13,21 @@ macro write fd, buf, count
     mov rdx, count
     syscall
 }
+
+macro exit code
+{
+    ; second syscall to exit
+    mov rax, 60
+    ; mov rdi register for exit code (0)
+    mov rdi, code
+    syscall
+}
+
 segment readable executable
 entry main
 main:
     write 1, msg, msg_len
-
-    ; second syscall to exit
-    mov rax, 60
-    ; mov rdi register for exit code (0)
-    mov rdi, 0
-    syscall
+    exit 0
 
 segment readable writeable
 msg db "Hello, World!", 10
