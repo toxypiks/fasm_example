@@ -1,14 +1,18 @@
 format ELF64 executable
 
-SYS_WRITE = 1
-SYS_EXIT = 60
-SYS_SOCKET = 41
+;; equ marks a compile time constant
+SYS_WRITE equ 1
+SYS_EXIT equ 60
+SYS_SOCKET equ 41
 
-AF_INET = 2
-SOCK_STREAM = 1
+AF_INET equ 2
+SOCK_STREAM equ 1
 
-STDOUT = 1
-STDERR = 2
+STDOUT equ 1
+STDERR equ 2
+
+EXIT_SUCCESS equ 0
+EXIT_FAILURE equ 1
 
 macro write fd, buf, count
 {
@@ -41,12 +45,13 @@ entry main
 main:
 
     write STDOUT, start, start_len
-    ;; socket AF_INET, SOCK_STREAM, 0
-    socket 69, 420, 0
+    write STDOUT, socket_trace_msg, socket_trace_msg_len
+    socket AF_INET, SOCK_STREAM, 0
     cmp rax, 0 ;; compares value of rax to 0
     jl error ;; jump if its less then 0 to error
     mov dword [sockfd], eax ;; move file descriptor of socket from eax register to sockfd
     ;; dword indicates a 32-bit write to prevent overwriting
+    write STDOUT, ok_msg, ok_msg_len
     exit 0
 
 error:
@@ -55,7 +60,11 @@ error:
 
 segment readable writeable
 sockfd dd 0
-start db "Hello Web Server!", 10
+start db "INFO: Starting Web Server!", 10
 start_len = $ - start
-error_msg db "ERROR!", 10
-error_msg_len = $ - error
+ok_msg db "INFO: OK!", 10
+ok_msg_len = $ - ok_msg
+socket_trace_msg db "INFO: Creating Socket...", 10
+socket_trace_msg_len = $ - socket_trace_msg
+error_msg db "INFO: ERROR!", 10
+error_msg_len = $ - error_msg
