@@ -39,8 +39,11 @@ main:
 
     write 1, start, start_len
     socket AF_INET, SOCK_STREAM, 0
+    mov dword [sockfd], eax ;; move file descriptor of socket from eax register to sockfd
+    ;; dword indicates a 32-bit write
     exit 0
 
 segment readable writeable
+sockfd dd 0
 start db "Hello Web Server!", 10
 start_len = $ - start
