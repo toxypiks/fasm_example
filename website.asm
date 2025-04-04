@@ -101,7 +101,7 @@ main:
     mov word [servaddr.sin_family], AF_INET ;;word = 16 bit write
     mov word [servaddr.sin_port], 14619
     mov dword [servaddr.sin_addr], INADDR_ANY
-    bind [sockfd], servaddr.sin_family, sizeof_servaddr
+    bind [sockfd], servaddr.sin_family, servaddr.size
     cmp rax, 0
     jl error
 
@@ -125,18 +125,17 @@ error:
 
 segment readable writeable
 
+struc servaddr_in
+{
+    .sin_family dw 0
+    .sin_port   dw 0
+    .sin_addr   dd 0
+    .sin_zero   dq 0
+    .size = $ - .sin_family
+}
 sockfd dq 0
-;; struct sockaddr_in {
-;; sa_family_t sin_family;  // 16 bits
-;; in_port_t sin_port       // 16 bits
-;; struct in_addr sin_addr; // 32 bits
-;; uint8_t sin_zero[8];     // 64 bits
-;; };
-servaddr.sin_family dw 0
-servaddr.sin_port   dw 0
-servaddr.sin_addr   dd 0
-servaddr.sin_zero   dq 0
-sizeof_servaddr = $ - servaddr.sin_family
+servaddr servaddr_in
+cliaddr servaddr_in
 
 start db "INFO: Starting Web Server!", 10
 start_len = $ - start
