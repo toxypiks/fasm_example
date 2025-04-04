@@ -4,9 +4,11 @@ format ELF64 executable
 SYS_WRITE equ 1
 SYS_EXIT equ 60
 SYS_SOCKET equ 41
+SYS_BIND equ 49
 
 AF_INET equ 2
 SOCK_STREAM equ 1
+INADDR_ANY equ 0
 
 STDOUT equ 1
 STDERR equ 2
@@ -33,6 +35,20 @@ macro socket domain, type, protocol
     syscall
 }
 
+macro syscall3 number, a, b, c
+{
+    mov rax, number
+    mov rdi, a
+    mov rsi, b
+    mov rdx, c
+    syscall
+}
+
+macro bind sockfd, addr, addrlen
+{
+    syscall3 SYS_BIND, sockfd, addr, addrlen
+}
+
 macro exit code
 {
     mov rax, SYS_EXIT
@@ -49,8 +65,17 @@ main:
     socket AF_INET, SOCK_STREAM, 0
     cmp rax, 0 ;; compares value of rax to 0
     jl error ;; jump if its less then 0 to error
-    mov dword [sockfd], eax ;; move file descriptor of socket from eax register to sockfd
+    mov qword [sockfd], rax ;; move file descriptor of socket from eax register to sockfd
     ;; dword indicates a 32-bit write to prevent overwriting
+
+    write STDOUT, bind_trace_msg, bind_trace_msg_len
+    mov word [servaddr.sin_family], AF_INET ;;word = 16 bit write
+    mov word [servaddr.sin_port], 14619
+    mov dword [servaddr.sin_addr], INADDR_ANY
+    bind [sockfd], servaddr.sin_family, sizeof_servaddr
+    cmp rax, 0
+    jl error
+
     write STDOUT, ok_msg, ok_msg_len
     exit 0
 
@@ -58,13 +83,33 @@ error:
     write STDERR, error_msg, error_msg_len
     exit 1
 
+;; db - 1 byte
+;; dw - 2 byte
+;; dd - 4 bytes
+;; dq - 8 bytes
+
 segment readable writeable
-sockfd dd 0
+
+sockfd dq 0
+;; struct sockaddr_in {
+;; sa_family_t sin_family;  // 16 bits
+;; in_port_t sin_port       // 16 bits
+;; struct in_addr sin_addr; // 32 bits
+;; uint8_t sin_zero[8];     // 64 bits
+;; };
+servaddr.sin_family dw 0
+servaddr.sin_port   dw 0
+servaddr.sin_addr   dd 0
+servaddr.sin_zero   dq 0
+sizeof_servaddr = $ - servaddr.sin_family
+
 start db "INFO: Starting Web Server!", 10
 start_len = $ - start
 ok_msg db "INFO: OK!", 10
 ok_msg_len = $ - ok_msg
 socket_trace_msg db "INFO: Creating Socket...", 10
 socket_trace_msg_len = $ - socket_trace_msg
+bind_trace_msg db "INFO: Binding the Socket...", 10
+bind_trace_msg_len = $ - bind_trace_msg
 error_msg db "INFO: ERROR!", 10
 error_msg_len = $ - error_msg
