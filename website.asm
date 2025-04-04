@@ -107,7 +107,7 @@ main:
     mov word [servaddr.sin_family], AF_INET ;;word = 16 bit write
     mov word [servaddr.sin_port], 14619
     mov dword [servaddr.sin_addr], INADDR_ANY
-    bind [sockfd], servaddr.sin_family, servaddr.size
+    bind [sockfd], servaddr.sin_family, sizeof_serveraddr
     cmp rax, 0
     jl error
 
@@ -117,16 +117,21 @@ main:
     jl error
 
     write STDOUT, accept_trace_msg, accept_trace_msg_len
-    accept [sockfd], cliaddr.sin_family, cliaddr.size
+    accept [sockfd], cliaddr.sin_family, cliaddr_len
     cmp rax, 0
     jl error
 
+    mov qword [connfd], rax
+
     write STDOUT, ok_msg, ok_msg_len
+    close [connfd]
     close [sockfd]
     exit 0
 
 error:
     write STDERR, error_msg, error_msg_len
+    close [connfd]
+    close [sockfd]
     exit 1
 
 ;; db - 1 byte
@@ -142,11 +147,13 @@ struc servaddr_in
     .sin_port   dw 0
     .sin_addr   dd 0
     .sin_zero   dq 0
-    .size = $ - .sin_family
 }
-sockfd dq 0
+sockfd dq -1
+connfd dq -1
 servaddr servaddr_in
+sizeof_serveraddr = $ - servaddr.sin_family
 cliaddr servaddr_in
+cliaddr_len dd sizeof_serveraddr
 
 start db "INFO: Starting Web Server!", 10
 start_len = $ - start
