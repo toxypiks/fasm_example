@@ -4,6 +4,7 @@ format ELF64 executable
 SYS_WRITE equ 1
 SYS_EXIT equ 60
 SYS_SOCKET equ 41
+SYS_ACCEPT equ 43
 SYS_BIND equ 49
 SYS_LISTEN equ 50
 SYS_CLOSE equ 3
@@ -78,6 +79,11 @@ macro listen sockfd, backlog
     syscall2 SYS_LISTEN, sockfd, backlog
 }
 
+macro accept sockfd, addr, addrlen
+{
+    syscall3 SYS_ACCEPT, sockfd, addr, addrlen
+}
+
 macro exit code
 {
     mov rax, SYS_EXIT
@@ -107,6 +113,11 @@ main:
 
     write STDOUT, listen_trace_msg, listen_trace_msg_len
     listen[sockfd], MAX_CONN
+    cmp rax, 0
+    jl error
+
+    write STDOUT, accept_trace_msg, accept_trace_msg_len
+    accept [sockfd], cliaddr.sin_family, cliaddr.size
     cmp rax, 0
     jl error
 
@@ -147,5 +158,7 @@ bind_trace_msg db "INFO: Binding the Socket...", 10
 bind_trace_msg_len = $ - bind_trace_msg
 listen_trace_msg db "INFO: Listening to the Socket...", 10
 listen_trace_msg_len = $ - listen_trace_msg
+accept_trace_msg db "INFO: Waiting for client connections...", 10
+accept_trace_msg_len = $ - accept_trace_msg
 error_msg db "INFO: ERROR!", 10
 error_msg_len = $ - error_msg
