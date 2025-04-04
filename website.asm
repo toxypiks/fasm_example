@@ -5,6 +5,8 @@ SYS_WRITE equ 1
 SYS_EXIT equ 60
 SYS_SOCKET equ 41
 SYS_BIND equ 49
+SYS_LISTEN equ 50
+SYS_CLOSE equ 3
 
 AF_INET equ 2
 SOCK_STREAM equ 1
@@ -16,22 +18,20 @@ STDERR equ 2
 EXIT_SUCCESS equ 0
 EXIT_FAILURE equ 1
 
-macro write fd, buf, count
+MAX_CONN equ 5
+
+macro syscall1 number, a
 {
-    mov rax, SYS_WRITE
-    mov rdi, fd
-    mov rsi, buf
-    mov rdx, count
+    mov rax, number
+    mov rdi, a
     syscall
 }
 
-;; int socket(int domain, int type, int protocol)
-macro socket domain, type, protocol
+macro syscall2 number, a, b
 {
-    mov rax, SYS_SOCKET
-    mov rdi, domain
-    mov rsi, type
-    mov rdx, protocol
+    mov rax, number
+    mov rdi, a
+    mov rsi, b
     syscall
 }
 
@@ -44,9 +44,38 @@ macro syscall3 number, a, b, c
     syscall
 }
 
+macro write fd, buf, count
+{
+    mov rax, SYS_WRITE
+    mov rdi, fd
+    mov rsi, buf
+    mov rdx, count
+    syscall
+}
+
+macro close fd
+{
+    syscall1 SYS_CLOSE, fd
+}
+
+;; int socket(int domain, int type, int protocol)
+macro socket domain, type, protocol
+{
+    mov rax, SYS_SOCKET
+    mov rdi, domain
+    mov rsi, type
+    mov rdx, protocol
+    syscall
+}
+
 macro bind sockfd, addr, addrlen
 {
     syscall3 SYS_BIND, sockfd, addr, addrlen
+}
+
+macro listen sockfd, backlog
+{
+    syscall2 SYS_LISTEN, sockfd, backlog
 }
 
 macro exit code
@@ -76,7 +105,13 @@ main:
     cmp rax, 0
     jl error
 
+    write STDOUT, listen_trace_msg, listen_trace_msg_len
+    listen[sockfd], MAX_CONN
+    cmp rax, 0
+    jl error
+
     write STDOUT, ok_msg, ok_msg_len
+    close [sockfd]
     exit 0
 
 error:
@@ -111,5 +146,7 @@ socket_trace_msg db "INFO: Creating Socket...", 10
 socket_trace_msg_len = $ - socket_trace_msg
 bind_trace_msg db "INFO: Binding the Socket...", 10
 bind_trace_msg_len = $ - bind_trace_msg
+listen_trace_msg db "INFO: Listening to the Socket...", 10
+listen_trace_msg_len = $ - listen_trace_msg
 error_msg db "INFO: ERROR!", 10
 error_msg_len = $ - error_msg
