@@ -5,8 +5,8 @@ segment readable executable
 main:
    mov rax, 1
    mov rdi, 1
-   mov rsi, msg
-   mov rdx, msg_len
+   mov rsi, my_msg
+   mov rdx, 39
    syscall
 
    mov rax, 60
@@ -16,3 +16,5 @@ main:
 segment readable writeable
 msg db "Hello World!", 10
 msg_len = $ - msg
+my_msg:
+file "./message.txt"
